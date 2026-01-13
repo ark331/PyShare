@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>PyShare - Network File Sharing</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="sharing-styles.css">
+    <script>
+        // Detect if running in Capacitor (Android app)
+        const isCapacitor = window.location.protocol === 'capacitor:' || 
+                           window.location.protocol === 'http:' && 
+                           window.location.hostname === 'localhost';
+        
+        // Set base URL for API calls
+        window.API_BASE_URL = isCapacitor ? 'http://localhost:8000' : '';
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 4L4 10v12l12 6 12-6V10L16 4z" stroke="#4CAF50" stroke-width="2" fill="none"/>
+                    <circle cx="16" cy="16" r="4" fill="#4CAF50"/>
+                </svg>
+                <h1>PyShare</h1>
+            </div>
+            <div class="server-info" id="serverInfo">
+                <span class="status-dot"></span>
+                <span id="ipAddress">Loading...</span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab active" data-tab="share">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                Share Files
+            </button>
+            <button class="tab" data-tab="receive">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Receive Files
+            </button>
+            <button class="tab" data-tab="devices">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <path d="M8 21h8M12 17v4"/>
+                </svg>
+                Devices
+            </button>
+        </nav>
+
+        <!-- Share Tab -->
+        <div class="tab-content active" id="share">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    <h3>Drop files here or click to upload</h3>
+                    <p>Share files with devices on your network</p>
+                    <input type="file" id="fileInput" multiple hidden>
+                </div>
+            </div>
+
+            <div class="files-section">
+                <div class="section-header">
+                    <h2>Shared Files</h2>
+                    <div class="header-actions">
+                        <button class="btn-download-all" id="downloadAllBtn" style="display: none;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Download All
+                        </button>
+                        <button class="btn-refresh" id="refreshFiles">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="files-list" id="filesList">
+                    <div class="empty-state">
+                        <p>No files shared yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sharing Control -->
+            <div class="sharing-control" id="sharingControl" style="display: none;">
+                <div class="sharing-info">
+                    <p class="help-text">📤 Ready to share <span id="fileCount">0</span> file(s)</p>
+                    <div class="share-url-display" id="shareUrlDisplay" style="display: none;">
+                        <label>Share this URL:</label>
+                        <div class="url-box">
+                            <input type="text" id="shareUrl" readonly class="url-input">
+                            <button class="btn-copy" id="copyUrlBtn" title="Copy URL">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-share-large inactive" id="shareBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                    <div>
+                        <div class="btn-title">Start Sharing</div>
+                        <div class="btn-subtitle">Make files accessible to other devices</div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Connection Logs -->
+            <div class="logs-section" style="display: none;">
+                <div class="section-header">
+                    <h2>Connection Logs</h2>
+                    <button class="btn-refresh" id="refreshLogs">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="logs-list" id="logsList">
+                    <div class="empty-state">
+                        <p>No connections yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receive Tab -->
+        <div class="tab-content" id="receive">
+            <div class="connect-section">
+                <h2>Connect to Device</h2>
+                <div class="input-group">
+                    <input type="text" id="remoteIP" placeholder="Enter IP address (e.g., 192.168.1.100)" class="input-field">
+                    <input type="number" id="remotePort" placeholder="Port" value="8000" class="input-field-small">
+                    <button class="btn-primary" id="connectBtn">Connect</button>
+                </div>
+            </div>
+
+            <div class="remote-files-section">
+                <div class="section-header">
+                    <h2>Remote Files</h2>
+                    <div class="header-actions">
+                        <button class="btn-download-all" id="downloadAllRemoteBtn" style="display: none;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Download All
+                        </button>
+                        <span id="remoteStatus" class="status-text"></span>
+                    </div>
+                </div>
+                <div class="files-list" id="remoteFilesList">
+                    <div class="empty-state">
+                        <p>Connect to a device to see their files</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Devices Tab -->
+        <div class="tab-content" id="devices">
+            <div class="scan-section">
+                <h2>Discover Devices</h2>
+                <p class="help-text">Scan your local network for other PyShare servers</p>
+                <button class="btn-primary" id="scanBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <circle cx="12" cy="12" r="8"/>
+                    </svg>
+                    Scan Network
+                </button>
+            </div>
+
+            <div class="devices-section">
+                <h2>Available Devices</h2>
+                <div class="devices-list" id="devicesList">
+                    <div class="empty-state">
+                        <p>No devices found. Click "Scan Network" to discover devices.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script src="app-capacitor.js"></script>
+</body>
+</html>

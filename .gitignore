@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+android/app/build/
+android/.gradle/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+android/local.properties
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Shared files (user uploads)
+shared_files/
+nodejs-assets/nodejs-project/shared_files/
+
+# Android
+*.apk
+*.ap_
+*.aab
+*.dex
+bin/
+gen/
+out/
+.gradle/
+local.properties
+proguard/
+captures/
+.externalNativeBuild
+.cxx
+
+# Keystore files
+*.jks
+*.keystore
+
+# Capacitor
+android/app/src/main/assets/public/
+android/app/src/main/res/drawable-*/*.png
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib

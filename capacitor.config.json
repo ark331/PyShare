@@ -1,0 +1,22 @@
+{
+  "appId": "com.pyshare.app",
+  "appName": "PyShare",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "http",
+    "hostname": "localhost",
+    "allowNavigation": ["*"],
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "cordova": {
+    "preferences": {
+      "nodejs-mobile-cordova": "true"
+    }
+  },
+  "plugins": {
+    "nodejs-mobile-cordova": {}
+  }
+}

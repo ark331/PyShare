@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PyShare</string>
+    <string name="title_activity_main">PyShare</string>
+    <string name="package_name">com.pyshare.app</string>
+    <string name="custom_url_scheme">com.pyshare.app</string>
+</resources>

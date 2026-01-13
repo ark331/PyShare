@@ -1,0 +1,149 @@
+apply plugin: 'com.android.application'
+
+// Task to setup nodejs-mobile native libraries before build
+task setupNodeJSMobile {
+    doLast {
+        // Copy nodejs-project to assets/www/nodejs-project (required by nodejs-mobile-cordova plugin)
+        def nodejsProjectSource = file("$rootDir/../nodejs-assets/nodejs-project")
+        def nodejsProjectDest = file("$projectDir/src/main/assets/www/nodejs-project")
+        
+        if (nodejsProjectSource.exists()) {
+            println "Copying nodejs-project from ${nodejsProjectSource} to ${nodejsProjectDest}"
+            copy {
+                from nodejsProjectSource
+                into nodejsProjectDest
+            }
+        } else {
+            println "WARNING: nodejs-project source not found at ${nodejsProjectSource}"
+        }
+        
+        // Copy builtin_modules from plugin to app assets (required by nodejs-mobile-cordova plugin)
+        def builtinModulesSource = file("$projectDir/../capacitor-cordova-android-plugins/src/main/assets/builtin_modules")
+        def builtinModulesDest = file("$projectDir/src/main/assets/nodejs-mobile-cordova-assets/builtin_modules")
+        
+        if (builtinModulesSource.exists()) {
+            println "Copying builtin_modules from ${builtinModulesSource} to ${builtinModulesDest}"
+            copy {
+                from builtinModulesSource
+                into builtinModulesDest
+            }
+        } else {
+            println "WARNING: builtin_modules source not found at ${builtinModulesSource}"
+        }
+        
+        // Copy nodejs native libs from plugin source to both modules
+        def sourceLibs = file("$projectDir/../capacitor-cordova-android-plugins/src/main/libs/cdvnodejsmobile")
+        def appLibs = file("$projectDir/libs/cdvnodejsmobile")
+        def pluginLibs = file("$projectDir/../capacitor-cordova-android-plugins/libs/cdvnodejsmobile")
+        
+        [appLibs, pluginLibs].each { destDir ->
+            if (!destDir.exists()) {
+                destDir.mkdirs()
+            }
+            
+            // Copy CMakeLists.txt and source files
+            copy {
+                from(sourceLibs) {
+                    include '*.txt', '*.cpp', '*.h'
+                }
+                into destDir
+            }
+            
+            // Copy and extract bin directory with libnode.so
+            copy {
+                from sourceLibs
+                into destDir
+                include 'bin/**'
+            }
+            
+            // Extract .gz files
+            fileTree(destDir).include('**/libnode.so.gz').each { gzFile ->
+                def soFile = file(gzFile.path - '.gz')
+                if (!soFile.exists()) {
+                    exec {
+                        commandLine 'gunzip', '-c', gzFile.path
+                        standardOutput = new FileOutputStream(soFile)
+                    }
+                }
+            }
+            
+            // Copy include directory
+            copy {
+                from sourceLibs
+                into destDir
+                include 'include/**'
+            }
+            
+            // Create libnode directory structure if needed
+            def libnodeDir = new File(destDir, "libnode")
+            if (!libnodeDir.exists()) {
+                libnodeDir.mkdirs()
+                // Move bin to libnode/bin
+                def binDir = new File(destDir, "bin")
+                if (binDir.exists()) {
+                    binDir.renameTo(new File(libnodeDir, "bin"))
+                }
+                // Move include to libnode/include
+                def includeDir = new File(destDir, "include")
+                if (includeDir.exists()) {
+                    includeDir.renameTo(new File(libnodeDir, "include"))
+                }
+            }
+        }
+    }
+}
+
+preBuild.dependsOn setupNodeJSMobile
+
+android {
+    namespace = "com.pyshare.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.pyshare.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
