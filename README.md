@@ -44,10 +44,9 @@
 ## 📦 Installation
 
 ### Android APK
-1. Download the latest APK from [Releases](https://github.com/yourusername/PyShare/releases)
+1. Download the latest APK from [Releases](https://github.com/ark331/PyShare/releases)
 2. Install on your Android device
-3. Grant storage permissions
-4. Start sharing!
+3. Start sharing!
 
 ### Build from Source
 
